@@ -22,7 +22,7 @@ WHERE {
   				FILTER (LANGMATCHES(LANG(?overview), "es") || LANG(?overview) = "")
   }
 }
-LIMIT 50
+#LIMIT 50
 """
 
 # 2. Consulta para extraer Publicaciones, sus URIs y su autoría
@@ -59,5 +59,5 @@ WHERE {
   }
 }
 GROUP BY ?pub ?title ?abstract ?date ?doi ?autores
-LIMIT 50
+#LIMIT 50
 """

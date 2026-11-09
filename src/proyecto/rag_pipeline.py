@@ -7,11 +7,13 @@ import ollama
 EMBEDDING_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 QDRANT_PATH = "./qdrant_local"
 COLLECTION_NAME = "vivo_knowledge_base"
-OLLAMA_MODEL = "llama3"  # O puedes usar "mistral", "phi3", etc.
+#OLLAMA_MODEL = "llama3"  # O puedes usar "mistral", "phi3", etc.
+OLLAMA_MODEL = "gemma2:2b"
 
-def buscar_en_qdrant(query: str, top_k: int = 3) -> list[dict]:
+# rag_pipeline.py (Fragmento corregido de buscar_en_qdrant)
+def buscar_en_qdrant(query: str, top_k: int = 5) -> list[dict]:
     """Vectoriza la pregunta y busca los chunks más relevantes en la base vectorial Qdrant."""
-    print(f"\n[Retrieval] Vectorizando consulta y buscando en Qdrant...")
+    print(f"\n[Retrieval] Vectorizando consulta y buscando en Qdrant: '{query}'")
     
     # 1. Cargar modelo de embedding y vectorizar la pregunta
     model = SentenceTransformer(EMBEDDING_MODEL_NAME)
@@ -27,22 +29,31 @@ def buscar_en_qdrant(query: str, top_k: int = 3) -> list[dict]:
         limit=top_k
     )
     
-    # 4. Extraer el payload (texto y metadatos/URIs)
     resultados_recuperados = []
+    print("\n--- RESULTADOS RECUPERADOS DE QDRANT ---")
+    
     for scored_point in search_results.points:
         payload = scored_point.payload
+        
+        # ✅ Definición correcta de variables antes de usarlas
+        score = scored_point.score
+        nombre = payload.get("name") or payload.get("title", "Recurso VIVO")
+        uri = payload.get("source_url") or payload.get("uri")
+        
+        print(f"-> Score: {score:.4f} | Entidad: {nombre} | URI: {uri}")
+        
         resultados_recuperados.append({
             "text": payload.get("text"),
-            "uri": payload.get("source_url"),
-            "name_or_title": payload.get("name") or payload.get("title", "Recurso VIVO"),
-            "score": scored_point.score
+            "uri": uri,
+            "name_or_title": nombre,
+            "score": score
         })
         
     return resultados_recuperados
 
 def generar_respuesta_rag(query: str):
     # Paso A: Recuperar contexto relevante (Retrieval)
-    contextos = buscar_en_qdrant(query, top_k=3)
+    contextos = buscar_en_qdrant(query, top_k=5)
     
     if not contextos:
         print("No se encontró información relevante en la base de datos vectorial.")
@@ -97,8 +108,9 @@ Fuentes de Contexto:
 
 if __name__ == "__main__":
     # Ejemplo de consulta interactiva de prueba
-    pregunta_usuario = "¿Quién es Juan Pérez y cuáles son sus publicaciones o áreas de investigación?"
-    
+    #pregunta_usuario = "¿Quién es Mauricio Becerra y cuáles son sus publicaciones o áreas de investigación?"
+    pregunta_usuario = "autores con publicaciones sobre derechos"
+
     # Puedes cambiar la pregunta por lo que desees consultar en tu base de datos de VIVO
     print(f"Pregunta formulada: '{pregunta_usuario}'")
     generar_respuesta_rag(pregunta_usuario)
